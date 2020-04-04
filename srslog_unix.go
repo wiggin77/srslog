@@ -49,7 +49,7 @@ func (n *localConn) writeString(framer Framer, formatter Formatter, p Priority, 
 }
 
 // close the (local) network connection
-func (n *localConn) close() error {
+func (n *localConn) Close() error {
 	return n.conn.Close()
 }
 

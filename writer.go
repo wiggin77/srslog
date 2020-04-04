@@ -46,7 +46,7 @@ func (w *Writer) connect() (ServerConn, error) {
 	conn := w.GetServerConn()
 	if conn != nil {
 		// ignore err from close, it makes sense to continue anyway
-		conn.close()
+		conn.Close()
 		w.setConn(nil)
 	}
 
@@ -94,7 +94,7 @@ func (w *Writer) WriteWithPriority(p Priority, b []byte) (int, error) {
 func (w *Writer) Close() error {
 	conn := w.GetServerConn()
 	if conn != nil {
-		err := conn.close()
+		err := conn.Close()
 		w.setConn(nil)
 		return err
 	}

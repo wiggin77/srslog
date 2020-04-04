@@ -25,7 +25,7 @@ func (n *netConn) writeString(framer Framer, formatter Formatter, p Priority, ho
 }
 
 // close the network connection
-func (n *netConn) close() error {
+func (n *netConn) Close() error {
 	return n.conn.Close()
 }
 
