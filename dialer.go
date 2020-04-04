@@ -12,11 +12,11 @@ import (
 // be useful for you without having to use reflection.
 type dialerFunctionWrapper struct {
 	Name   string
-	Dialer func() (serverConn, string, error)
+	Dialer func() (ServerConn, string, error)
 }
 
 // Call the wrapped dialer function and return its return values.
-func (df dialerFunctionWrapper) Call() (serverConn, string, error) {
+func (df dialerFunctionWrapper) Call() (ServerConn, string, error) {
 	return df.Dialer()
 }
 
@@ -48,7 +48,7 @@ func (w *Writer) getDialer() dialerFunctionWrapper {
 
 // unixDialer uses the unixSyslog method to open a connection to the syslog
 // daemon running on the local machine.
-func (w *Writer) unixDialer() (serverConn, string, error) {
+func (w *Writer) unixDialer() (ServerConn, string, error) {
 	sc, err := unixSyslog()
 	hostname := w.hostname
 	if hostname == "" {
@@ -59,9 +59,9 @@ func (w *Writer) unixDialer() (serverConn, string, error) {
 
 // tlsDialer connects to TLS over TCP, and is used for the "tcp+tls" network
 // type.
-func (w *Writer) tlsDialer() (serverConn, string, error) {
+func (w *Writer) tlsDialer() (ServerConn, string, error) {
 	c, err := tls.Dial("tcp", w.raddr, w.tlsConfig)
-	var sc serverConn
+	var sc ServerConn
 	hostname := w.hostname
 	if err == nil {
 		sc = &netConn{conn: c}
@@ -74,9 +74,9 @@ func (w *Writer) tlsDialer() (serverConn, string, error) {
 
 // basicDialer is the most common dialer for syslog, and supports both TCP and
 // UDP connections.
-func (w *Writer) basicDialer() (serverConn, string, error) {
+func (w *Writer) basicDialer() (ServerConn, string, error) {
 	c, err := net.Dial(w.network, w.raddr)
-	var sc serverConn
+	var sc ServerConn
 	hostname := w.hostname
 	if err == nil {
 		sc = &netConn{conn: c}
@@ -90,9 +90,9 @@ func (w *Writer) basicDialer() (serverConn, string, error) {
 // customDialer uses the custom dialer when the Writer was created
 // giving developers total control over how connections are made and returned.
 // Note it does not check if cdialer is nil, as it should only be referenced from getDialer.
-func (w *Writer) customDialer() (serverConn, string, error) {
+func (w *Writer) customDialer() (ServerConn, string, error) {
 	c, err := w.customDial(w.network, w.raddr)
-	var sc serverConn
+	var sc ServerConn
 	hostname := w.hostname
 	if err == nil {
 		sc = &netConn{conn: c}

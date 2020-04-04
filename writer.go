@@ -21,13 +21,13 @@ type Writer struct {
 	customDial DialFunc
 
 	mu   sync.RWMutex // guards conn
-	conn serverConn
+	conn ServerConn
 }
 
-// GetConn provides access to the internal conn, protected by a mutex. The
+// GetServerConn provides access to the internal conn, protected by a mutex. The
 // conn is threadsafe, so it can be used while unlocked, but we want to avoid
 // race conditions on grabbing a reference to it.
-func (w *Writer) GetConn() serverConn {
+func (w *Writer) GetServerConn() ServerConn {
 	w.mu.RLock()
 	conn := w.conn
 	w.mu.RUnlock()
@@ -35,15 +35,15 @@ func (w *Writer) GetConn() serverConn {
 }
 
 // setConn updates the internal conn, protected by a mutex.
-func (w *Writer) setConn(c serverConn) {
+func (w *Writer) setConn(c ServerConn) {
 	w.mu.Lock()
 	w.conn = c
 	w.mu.Unlock()
 }
 
 // connect makes a connection to the syslog server.
-func (w *Writer) connect() (serverConn, error) {
-	conn := w.GetConn()
+func (w *Writer) connect() (ServerConn, error) {
+	conn := w.GetServerConn()
 	if conn != nil {
 		// ignore err from close, it makes sense to continue anyway
 		conn.close()
@@ -92,7 +92,7 @@ func (w *Writer) WriteWithPriority(p Priority, b []byte) (int, error) {
 
 // Close closes a connection to the syslog daemon.
 func (w *Writer) Close() error {
-	conn := w.GetConn()
+	conn := w.GetServerConn()
 	if conn != nil {
 		err := conn.close()
 		w.setConn(nil)
@@ -168,7 +168,7 @@ func (w *Writer) writeAndRetry(severity Priority, s string) (int, error) {
 // writeAndRetryWithPriority differs from writeAndRetry in that it allows setting
 // of both the facility and the severity.
 func (w *Writer) writeAndRetryWithPriority(p Priority, s string) (int, error) {
-	conn := w.GetConn()
+	conn := w.GetServerConn()
 	if conn != nil {
 		if n, err := w.write(conn, p, s); err == nil {
 			return n, err
@@ -184,7 +184,7 @@ func (w *Writer) writeAndRetryWithPriority(p Priority, s string) (int, error) {
 
 // write generates and writes a syslog formatted string. It formats the
 // message based on the current Formatter and Framer.
-func (w *Writer) write(conn serverConn, p Priority, msg string) (int, error) {
+func (w *Writer) write(conn ServerConn, p Priority, msg string) (int, error) {
 	// ensure it ends in a \n
 	if !strings.HasSuffix(msg, "\n") {
 		msg += "\n"
