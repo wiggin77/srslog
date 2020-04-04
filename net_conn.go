@@ -28,3 +28,7 @@ func (n *netConn) writeString(framer Framer, formatter Formatter, p Priority, ho
 func (n *netConn) close() error {
 	return n.conn.Close()
 }
+
+func (n *netConn) GetConn() net.Conn {
+	return n.conn
+}

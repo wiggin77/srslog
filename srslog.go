@@ -15,6 +15,7 @@ import (
 type serverConn interface {
 	writeString(framer Framer, formatter Formatter, p Priority, hostname, tag, s string) error
 	close() error
+	GetConn() net.Conn
 }
 
 // DialFunc is the function signature to be used for a custom dialer callback

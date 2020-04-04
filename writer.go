@@ -24,10 +24,10 @@ type Writer struct {
 	conn serverConn
 }
 
-// getConn provides access to the internal conn, protected by a mutex. The
+// GetConn provides access to the internal conn, protected by a mutex. The
 // conn is threadsafe, so it can be used while unlocked, but we want to avoid
 // race conditions on grabbing a reference to it.
-func (w *Writer) getConn() serverConn {
+func (w *Writer) GetConn() serverConn {
 	w.mu.RLock()
 	conn := w.conn
 	w.mu.RUnlock()
@@ -43,7 +43,7 @@ func (w *Writer) setConn(c serverConn) {
 
 // connect makes a connection to the syslog server.
 func (w *Writer) connect() (serverConn, error) {
-	conn := w.getConn()
+	conn := w.GetConn()
 	if conn != nil {
 		// ignore err from close, it makes sense to continue anyway
 		conn.close()
@@ -92,7 +92,7 @@ func (w *Writer) WriteWithPriority(p Priority, b []byte) (int, error) {
 
 // Close closes a connection to the syslog daemon.
 func (w *Writer) Close() error {
-	conn := w.getConn()
+	conn := w.GetConn()
 	if conn != nil {
 		err := conn.close()
 		w.setConn(nil)
@@ -168,7 +168,7 @@ func (w *Writer) writeAndRetry(severity Priority, s string) (int, error) {
 // writeAndRetryWithPriority differs from writeAndRetry in that it allows setting
 // of both the facility and the severity.
 func (w *Writer) writeAndRetryWithPriority(p Priority, s string) (int, error) {
-	conn := w.getConn()
+	conn := w.GetConn()
 	if conn != nil {
 		if n, err := w.write(conn, p, s); err == nil {
 			return n, err

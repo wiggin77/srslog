@@ -52,3 +52,7 @@ func (n *localConn) writeString(framer Framer, formatter Formatter, p Priority, 
 func (n *localConn) close() error {
 	return n.conn.Close()
 }
+
+func (n *localConn) GetConn() net.Conn {
+	return nil
+}
