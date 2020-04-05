@@ -23,7 +23,7 @@ func runPktSyslog(c net.PacketConn, done chan<- string) {
 		var n int
 		var err error
 
-		c.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		_ = c.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 		n, _, err = c.ReadFrom(buf[:])
 		rcvd += string(buf[:n])
 		if err != nil {
@@ -85,7 +85,7 @@ func runStreamSyslog(l net.Listener, done chan<- string, wg *sync.WaitGroup) {
 		wg.Add(1)
 		go func(c net.Conn) {
 			defer wg.Done()
-			c.SetReadDeadline(time.Now().Add(5 * time.Second))
+			_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
 			b := bufio.NewReader(c)
 			for ct := 1; !crashy.IsCrashy() || ct&7 != 0; ct++ {
 				s, err := b.ReadString('\n')
@@ -262,11 +262,11 @@ func TestDial(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping syslog test during -short")
 	}
-	f, err := Dial("", "", (LOG_LOCAL7|LOG_DEBUG)+1, "syslog_test")
+	f, _ := Dial("", "", (LOG_LOCAL7|LOG_DEBUG)+1, "syslog_test")
 	if f != nil {
 		t.Fatalf("Should have trapped bad priority")
 	}
-	f, err = Dial("", "", -1, "syslog_test")
+	f, _ = Dial("", "", -1, "syslog_test")
 	if f != nil {
 		t.Fatalf("Should have trapped bad priority")
 	}
@@ -504,6 +504,7 @@ func TestConcurrentReconnect(t *testing.T) {
 		count <- ct
 	}()
 
+	var errOut error
 	var wg sync.WaitGroup
 	wg.Add(N)
 	for i := 0; i < N; i++ {
@@ -511,19 +512,24 @@ func TestConcurrentReconnect(t *testing.T) {
 			defer wg.Done()
 			w, err := Dial(net, addr, LOG_USER|LOG_ERR, "tag")
 			if err != nil {
-				t.Fatalf("syslog.Dial() failed: %v", err)
+				errOut = fmt.Errorf("syslog.Dial() failed: %v", err)
+				return
 			}
 			defer w.Close()
 			for i := 0; i < M; i++ {
 				err := w.Info("test")
 				if err != nil {
-					t.Errorf("Info() failed: %v", err)
+					errOut = fmt.Errorf("Info() failed: %v", err)
 					return
 				}
 			}
 		}()
 	}
 	wg.Wait()
+	if errOut != nil {
+		t.Error(errOut)
+	}
+
 	sock.Close()
 	srvWG.Wait()
 	close(done)
@@ -541,7 +547,7 @@ func TestLocalConn(t *testing.T) {
 
 	lc := localConn{conn: conn}
 
-	lc.writeString(nil, nil, LOG_ERR, "hostname", "tag", "content")
+	_ = lc.writeString(nil, nil, LOG_ERR, "hostname", "tag", "content")
 
 	if len(messages) != 1 {
 		t.Errorf("should write one message")
