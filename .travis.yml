@@ -3,7 +3,6 @@ dist: trusty
 group: edge
 language: go
 go:
-- 1.5
 before_install:
   - pip install --user codecov
 script:
