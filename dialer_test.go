@@ -224,7 +224,7 @@ func TestCustomDialer(t *testing.T) {
 				return nil, errors.New("Unexpected network or address, expected: (" +
 					nwork + ":" + addr + ") but received (" + n + ":" + a + ")")
 			}
-			return &fakeConn{addr: &fakeAddr{nwork, addr}}, nil
+			return newFakeConn(&fakeAddr{nwork, addr}), nil
 		},
 	}
 
@@ -260,13 +260,14 @@ type fakeConn struct {
 	mux       sync.Mutex
 }
 
-func (fc *fakeConn) Close() error {
-	fc.mux.Lock()
-	defer fc.mux.Unlock()
+func newFakeConn(fakeAddr *fakeAddr) *fakeConn {
+	fake := &fakeConn{addr: fakeAddr}
+	fake.chanClose = make(chan interface{})
+	return fake
+}
 
-	if fc.chanClose != nil {
-		close(fc.chanClose)
-	}
+func (fc *fakeConn) Close() error {
+	close(fc.chanClose)
 	return nil
 }
 
@@ -276,8 +277,6 @@ func (fc *fakeConn) Write(p []byte) (int, error) {
 
 func (fc *fakeConn) Read(p []byte) (int, error) {
 	fc.mux.Lock()
-	fc.chanClose = make(chan interface{})
-	c := fc.chanClose
 	deadline := fc.deadline
 	fc.mux.Unlock()
 
@@ -289,7 +288,7 @@ func (fc *fakeConn) Read(p []byte) (int, error) {
 
 	select {
 	case <-time.After(dur):
-	case <-c:
+	case <-fc.chanClose:
 	}
 
 	return 0, nil
