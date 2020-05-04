@@ -504,7 +504,6 @@ func TestConcurrentReconnect(t *testing.T) {
 		count <- ct
 	}()
 
-	var errOut error
 	var wg sync.WaitGroup
 	wg.Add(N)
 	for i := 0; i < N; i++ {
@@ -512,23 +511,20 @@ func TestConcurrentReconnect(t *testing.T) {
 			defer wg.Done()
 			w, err := Dial(net, addr, LOG_USER|LOG_ERR, "tag")
 			if err != nil {
-				errOut = fmt.Errorf("syslog.Dial() failed: %v", err)
+				t.Errorf("syslog.Dial() failed: %v", err)
 				return
 			}
 			defer w.Close()
 			for i := 0; i < M; i++ {
 				err := w.Info("test")
 				if err != nil {
-					errOut = fmt.Errorf("Info() failed: %v", err)
+					t.Errorf("Info() failed: %v", err)
 					return
 				}
 			}
 		}()
 	}
 	wg.Wait()
-	if errOut != nil {
-		t.Error(errOut)
-	}
 
 	sock.Close()
 	srvWG.Wait()

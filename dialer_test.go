@@ -6,7 +6,9 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestGetDialer(t *testing.T) {
@@ -222,7 +224,7 @@ func TestCustomDialer(t *testing.T) {
 				return nil, errors.New("Unexpected network or address, expected: (" +
 					nwork + ":" + addr + ") but received (" + n + ":" + a + ")")
 			}
-			return fakeConn{addr: &fakeAddr{nwork, addr}}, nil
+			return &fakeConn{addr: &fakeAddr{nwork, addr}}, nil
 		},
 	}
 
@@ -252,18 +254,56 @@ func TestCustomDialer(t *testing.T) {
 type fakeConn struct {
 	net.Conn
 	addr net.Addr
+
+	deadline  time.Time
+	chanClose chan interface{}
+	mux       sync.Mutex
 }
 
-func (fc fakeConn) Close() error {
+func (fc *fakeConn) Close() error {
+	fc.mux.Lock()
+	defer fc.mux.Unlock()
+
+	if fc.chanClose != nil {
+		close(fc.chanClose)
+	}
 	return nil
 }
 
-func (fc fakeConn) Write(p []byte) (int, error) {
+func (fc *fakeConn) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (fc fakeConn) LocalAddr() net.Addr {
+func (fc *fakeConn) Read(p []byte) (int, error) {
+	fc.mux.Lock()
+	fc.chanClose = make(chan interface{})
+	c := fc.chanClose
+	deadline := fc.deadline
+	fc.mux.Unlock()
+
+	// syslog readers block until deadline or close
+	if deadline.IsZero() {
+		deadline = time.Now().Add(time.Hour * 24)
+	}
+	dur := time.Until(deadline)
+
+	select {
+	case <-time.After(dur):
+	case <-c:
+	}
+
+	return 0, nil
+}
+
+func (fc *fakeConn) LocalAddr() net.Addr {
 	return fc.addr
+}
+
+func (fc *fakeConn) SetReadDeadline(t time.Time) error {
+	fc.mux.Lock()
+	defer fc.mux.Unlock()
+	fc.deadline = t
+	return nil
 }
 
 type fakeAddr struct {
