@@ -1,3 +1,3 @@
 module github.com/wiggin77/srslog
 
-go 1.14
+go 1.20
