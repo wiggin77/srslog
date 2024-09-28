@@ -1,7 +1,7 @@
 package srslog
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 )
 
@@ -9,5 +9,5 @@ var Logger log.Logger
 
 func init() {
 	Logger = log.Logger{}
-	Logger.SetOutput(ioutil.Discard)
+	Logger.SetOutput(io.Discard)
 }
